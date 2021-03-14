@@ -4,8 +4,6 @@
 
 #include "sharedStructures.h"
 
-void helpFunction(); // initialize functions
-void spawnChild(int,int);
 void Timer(int);
 
 int main(int argc, char* argv[])
@@ -40,40 +38,38 @@ int main(int argc, char* argv[])
         }
    }
 
-	sigact(SIGINT, signalHandler); // create signal handler
+	signals(SIGINT, signalHandler); // create signal handler
 	attachMemory(); // attaching the shared memory
 	Output(logfile, "Time is : %s - Shared Memory Allocated\n", createTime());
-	sm->parentid = getpid();
-		
-	if (countOfProducers >= countOfConsumers) { // make sure consumers is > producers
-		countOfConsumers = countOfProducers + 1;
-	}
-	
-	int max = countOfConsumers + countOfProducers;
-	if (max > 20) { // if user adds more than 20 just switch to default values
-		countOfConsumers = 2;
-		countOfProducers = 6;
-		max = countOfConsumers + countOfProducers;
-	}
-  	 
 	strcpy(sm->logfile, logfile); // copying filename to memory
-
-	sm->Pro = countOfProducers;
-	sm->Con = countOfConsumers;
-	sm->total = max;
-	sm->ProCounter = 0;
-	sm->ConCounter = 0;
-	sm->MonCounter = 0;
-
-	int i = 0; // check to see if we run out of consumers, if we do end program
-	int j = 0;	
-
-        Timer(timeOfProcess); 
+	Timer(timeOfProcess); 
         Output(logfile, "Time is : %s - Alarm will end in %d seconds \n", createTime(),timeOfProcess);
         sem_t *mutex = sem_open("mutex", O_CREAT, 0600, 1);
         sem_t *empty = sem_open("empty", O_CREAT, 0600, 1);
         sem_t *full = sem_open("full", O_CREAT, 0600, 0);
+	
+        sm->ProCounter = 0;
+        sm->ConCounter = 0;
+        sm->MonCounter = 0;
 
+        int i = 0; // check to see if we run out of consumers, if we do end program
+        int j = 0;
+        if (countOfProducers >= countOfConsumers) { // make sure consumers is > producers
+                countOfConsumers = countOfProducers + 1;
+        }
+
+        int max = countOfConsumers + countOfProducers;
+        if (max > 20) { // if user adds more than 20 just switch to default values
+                countOfConsumers = 2;
+                countOfProducers = 6;
+                max = countOfConsumers + countOfProducers;
+        }
+
+        sm->Pro = countOfProducers;
+        sm->Con = countOfConsumers;
+        sm->total = max;
+        sm->parentid = getpid();
+ 
         while (true) { 
                 if (sm->ProCounter < countOfProducers) { 
                         createProducer(sm->ProCounter++, i);
@@ -101,5 +97,4 @@ int main(int argc, char* argv[])
         Output(logfile, "Time is : %s - Shared Memory Deallocated\n", createTime());
         return EXIT_SUCCESS;
 }
-
 

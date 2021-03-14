@@ -17,25 +17,8 @@
 #include <stdbool.h>
 #include <semaphore.h>
 #include <fcntl.h>
-
 #define FORMATTED_TIME_SIZE 50 
 #define FORMATTED_TIME_FORMAT "%H:%M:%S"
-
-struct SharedMemory {
-        size_t Pro;
-        size_t Con;
-        size_t total; 
-        char logfile[20];
-        int ProCounter;
-        int ConCounter;
-        int MonCounter;
-        int item;
-        pid_t parentid;
-        pid_t pgid; 
-};
-
-
-char* logfilename; 
 
 // shared memory 
 
@@ -46,6 +29,7 @@ sem_t mutex, empty, full;
 
 // functions used in libmonitor.c
 
+void helpFunction();
 void createMemory();
 void attachMemory();
 void releaseMemory();
@@ -53,11 +37,26 @@ void deleteMemory();
 void removeMemory();
 void File(char*); 
 void Output(char*, char*, ...);
-void sigact(int, void(int));
+void signals(int, void(int));
 void signalHandler(int);
 char* createTime();
 void produceMon(int);
 void consumeMon(int);
 void createProducer(int, int);
 void createConsumer(int, int);
+
+// struct for shared memory 
+
+struct SharedMemory {
+        size_t Pro;
+        size_t Con;
+        size_t total;
+        char logfile[20];
+        int ProCounter;
+        int ConCounter;
+        int MonCounter;
+        int item;
+        pid_t parentid;
+        pid_t pgid;
+};
 

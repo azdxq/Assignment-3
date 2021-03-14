@@ -2,6 +2,11 @@
 
 bool first = true;
 
+void helpFunction()
+{
+    printf("Monitor app help \n\nUsage:\tmonitor [-h]\n\tmonitor [-h] [-o logfile] [-p m] [-c n] [-t time]\nOptions:\n  -o logfile Name of the file to save logs; default: logfile\n  -p m Number of producers; default: m = 2\n  -c n Number of consumers; default: n = 6\n  -t time The time in seconds after which the process will terminate, even if it has not finished. (Default: 100)\n\n");
+}
+
 void attachMemory() { // attaches the shared memory
         createMemory();
         releaseMemory();
@@ -43,67 +48,12 @@ void File(char* file) { // create file
         fclose(newFile); 
 }
 
-void Output(char* file, char* fmt, ...) { // creates the writing and logging
-        FILE* fp = fopen(file, "a+"); 
-        int n = 4096;
-        char buffer[n];
-        va_list args; 
-        va_start(args, fmt);
-        vsprintf(buffer, fmt, args);
-        va_end(args);
-        fprintf(fp, buffer);
-        fclose(fp);
-}
-
-char* createTime() { // creates the time used for logfile
-        char* createdTime = malloc(FORMATTED_TIME_SIZE * sizeof(char)); 
-        time_t now = time(NULL);
-        strftime(createdTime, FORMATTED_TIME_SIZE, FORMATTED_TIME_FORMAT, localtime(&now));
-        return createdTime;
-}
-
-void sigact(int signum, void handler(int)) { // signal for timer and ctrl+c
-	struct sigaction sa;
-	if (sigemptyset(&sa.sa_mask) == -1) {
-		exit(EXIT_FAILURE);
-	}
-	sa.sa_handler = handler;
-	sa.sa_flags = 0;
-	if (sigaction(signum, &sa, NULL) == -1) { 
-		exit(EXIT_FAILURE);
-	}
-}
-
-void signalHandler(int signal) { // handles operations of the signal
-        if (sm->parentid != getpid()){
-                printf("Child is exiting\n");
-                exit(EXIT_FAILURE);
-        }
-
-        if (sm->parentid == getpid() && (signal == SIGALRM || signal == SIGUSR1)) { 
-                printf("Timer has reached 0, remaining consumers are now exiting\n");
-       }
-
-        sem_unlink("mutex"); 
-        sem_unlink("empty");
-        sem_unlink("full");
-
-        Output(sm->logfile, "Time is : %s - Ending process because of the signal\n", createTime()); 
-        killpg(sm->pgid, signal == SIGALRM ? SIGUSR1 : SIGINT);
-        while (wait(NULL) > 0); 
-        Output(sm->logfile, "Time is : %s - Shared Memory is Deallocated\n", createTime());
-        removeMemory(); 
-        printf("Monitor is now exiting\n");
-        exit(EXIT_SUCCESS);
-
-}
 
 void produceMon(int producer) { // Monitor portion for the producer
-        sem_t *mutex = sem_open("mutex", 0); 
+        sem_t *mutex = sem_open("mutex", 0);
         sem_t *empty = sem_open("empty" , 0);
-        sem_wait(empty); 
+        sem_wait(empty);
         sem_wait(mutex);
-
         char id[256];
         sprintf(id, "%d", producer);
         execl("./producer", id, NULL);
@@ -114,10 +64,54 @@ void consumeMon(int consumer) { // monitor portion for the consumer
         sem_t *full = sem_open("full" , 0);
         sem_wait(full);
         sem_wait(mutex);
-
-        char id[256];  
+        char id[256];
         sprintf(id, "%d", consumer);
-        execl("./consumer", id, NULL); 
+        execl("./consumer", id, NULL);
+}
+
+void Output(char* file, char* i, ...) { // creates the writing and logging
+        FILE* write = fopen(file, "a+"); 
+        char buffer[4096];
+        va_list args; 
+        va_start(args, i);
+        vsprintf(buffer, i, args);
+        va_end(args);
+        fprintf(write, buffer);
+        fclose(write);
+}
+
+void signals(int sigNumber, void handler(int)) { // signal for timer and ctrl+c
+	struct sigaction sa;
+	if (sigemptyset(&sa.sa_mask) == -1) {
+		exit(EXIT_FAILURE);
+	}
+	sa.sa_handler = handler;
+	sa.sa_flags = 0;
+	if (sigaction(sigNumber, &sa, NULL) == -1) { 
+		exit(EXIT_FAILURE);
+	}
+}
+
+void signalHandler(int signal) { // handles operations of the signal
+        if (sm->parentid != getpid()){
+                printf("Forcing the Consumers to leave\n");
+                exit(EXIT_FAILURE);
+        }
+
+        if (sm->parentid == getpid() && (signal == SIGALRM || signal == SIGUSR1)) { 
+                printf("Timer has reached 0, remaining consumers are now exiting\n");
+       }
+        Output(sm->logfile, "Time is : %s - Ending process because of the signal\n", createTime()); 
+        killpg(sm->pgid, signal == SIGALRM ? SIGUSR1 : SIGINT);
+        while (wait(NULL) > 0); 
+        Output(sm->logfile, "Time is : %s - Shared Memory is Deallocated\n", createTime());
+        removeMemory(); 
+        printf("Monitor is now leaving\n");
+        sem_unlink("mutex");
+        sem_unlink("empty");
+        sem_unlink("full");
+        exit(EXIT_SUCCESS);
+
 }
 
 void createProducer(int producer, int i) { // create the producer
@@ -128,7 +122,7 @@ void createProducer(int producer, int i) { // create the producer
         }
         setpgid(pid, sm->pgid);
         if (pid == 0) { 
-                sigact(SIGUSR1, signalHandler);
+                signals(SIGUSR1, signalHandler);
                 produceMon(producer);
                 exit(EXIT_SUCCESS);
         }
@@ -141,15 +135,23 @@ void createConsumer(int consumer, int i) { // create the consumer
         }
         setpgid(pid, sm->pgid);
         if (pid == 0) { 
-                sigact(SIGUSR1, signalHandler);
+                signals(SIGUSR1, signalHandler);
                 consumeMon(consumer);
                 exit(EXIT_SUCCESS);
         }
 }
 
+
+char* createTime() { // creates the time used for logfile
+        char* createdTime = malloc(FORMATTED_TIME_SIZE * sizeof(char));
+        time_t now = time(NULL);
+        strftime(createdTime, FORMATTED_TIME_SIZE, FORMATTED_TIME_FORMAT, localtime(&now));
+        return createdTime;
+}
+
 void Timer(const int t) {
-        sigact(SIGALRM, signalHandler);
-        sigact(SIGUSR1, signalHandler);
+        signals(SIGALRM, signalHandler);
+        signals(SIGUSR1, signalHandler);
 
         struct itimerval timer;
         timer.it_value.tv_sec = t;
@@ -161,9 +163,5 @@ void Timer(const int t) {
                 perror("failed to set timer");
                 exit(EXIT_FAILURE);
         }
-}
-void helpFunction()
-{
-    printf("Monitor app help \n\nUsage:\tmonitor [-h]\n\tmonitor [-h] [-o logfile] [-p m] [-c n] [-t time]\nOptions:\n  -o logfile Name of the file to save logs; default: logfile\n  -p m Number of producers; default: m = 2\n  -c n Number of consumers; default: n = 6\n  -t time The time in seconds after which the process will terminate, even if it has not finished. (Default: 100)\n\n");
 }
 
