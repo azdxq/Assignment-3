@@ -1,0 +1,26 @@
+Time is : 15:41:21 - Shared Memory Allocated
+Time is : 15:41:21 - Alarm will end in 10 seconds 
+Time is : 15:41:21 - Producer created item: 84
+Time is : 15:41:29 - Consumer removed item: 84
+Time is : 15:41:29 - Producer created item: 542
+Time is : 15:41:31 - Ending process because of ctrl+C
+Time is : 15:41:31 - Shared Memory is Deallocated
+Time is : 15:41:37 - Shared Memory Allocated
+Time is : 15:41:37 - Alarm will end in 100 seconds 
+Time is : 15:41:37 - Producer created item: 558
+Time is : 15:41:43 - Consumer removed item: 558
+Time is : 15:41:43 - Producer created item: 937
+Time is : 15:41:48 - Consumer removed item: 937
+Time is : 15:41:48 - Shared Memory Deallocated
+Time is : 15:41:51 - Shared Memory Allocated
+Time is : 15:41:51 - Alarm will end in 100 seconds 
+Time is : 15:41:51 - Producer created item: 184
+Time is : 15:41:52 - Ending process because of ctrl+C
+Time is : 15:41:52 - Shared Memory is Deallocated
+Time is : 15:46:50 - Shared Memory Allocated
+Time is : 15:46:50 - Alarm will end in 10 seconds 
+Time is : 15:46:50 - Producer created item: 548
+Time is : 15:46:59 - Consumer removed item: 548
+Time is : 15:46:59 - Producer created item: 638
+Time is : 15:47:00 - Ending process because of the signal
+Time is : 15:47:00 - Shared Memory is Deallocated
